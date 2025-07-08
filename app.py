@@ -45,6 +45,44 @@ def add_note():
     return jsonify({"id": note_id, "content": content}), 201
 
 
+@app.route('/notes/<int:note_id>', methods=['PUT'])
+def update_note(note_id):
+    data = request.get_json()
+    content = data.get('content')
+
+    if not content:
+        return jsonify({'error': 'Content is required'}), 400
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute('UPDATE notes SET content = %s WHERE id = %s RETURNING id;', (content, note_id))
+    updated = cur.fetchone()
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    if updated:
+        return jsonify({'id': updated[0], 'content': content}), 200
+    else:
+        return jsonify({'error': 'Note not found'}), 404
+
+
+@app.route('/notes/<int:note_id>', methods=['DELETE'])
+def delete_note(note_id):
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute('DELETE FROM notes WHERE id = %s RETURNING id;', (note_id,))
+    deleted = cur.fetchone()
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    if deleted:
+        return jsonify({'message': f'Note {deleted[0]} deleted'}), 200
+    else:
+        return jsonify({'error': 'Note not found'}), 404
+
+
 @app.route("/")
 def home():
     return "Not Defteri API Çalışıyor!"
